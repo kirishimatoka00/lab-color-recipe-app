@@ -207,7 +207,19 @@ export function scoreConfidence({ items, calib, residual, sameCarrier = true, ha
     // 2) 擬合品質
     for (const it of items) {
         if (!it.c || it.c <= 0 || !it.model) continue;
-        const r2 = Array.isArray(it.model.r2) ? Math.min(...it.model.r2) : null;
+
+        // 由歷史配方反推的模型沒有單色濃度梯度撐著，形式只能假設線性
+        if (it.model.source === 'history') {
+            const n = it.model.appearances || 0;
+            score -= n >= 5 ? 10 : n >= 3 ? 16 : 24;
+            reasons.push(
+                `${it.colorant?.name || '色料'}：模型由 ${n} 張歷史配方反推而非單色濃度曲線，` +
+                '只能假設線性且無法驗證飽和行為',
+            );
+        }
+
+        const known = Array.isArray(it.model.r2) ? it.model.r2.filter((v) => v != null) : [];
+        const r2 = known.length ? Math.min(...known) : null;
         if (r2 != null && r2 < 0.95) {
             score -= r2 < 0.85 ? 15 : 7;
             reasons.push(`${it.colorant?.name || '色料'}：濃度曲線擬合 R²=${r2.toFixed(3)}，資料離散`);

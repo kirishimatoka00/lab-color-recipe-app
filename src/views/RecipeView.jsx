@@ -7,6 +7,7 @@ import LabPlot from '../components/LabPlot.jsx';
 import Lab3D from '../components/Lab3D.jsx';
 import CandidatesPanel from '../components/CandidatesPanel.jsx';
 import CorrectionPanel from '../components/CorrectionPanel.jsx';
+import HistoryStartPanel from '../components/HistoryStartPanel.jsx';
 import { solveRecipe, dosageScan, substitute, reachableGamut } from '../color/solver.js';
 import { buildSolverColorants } from '../color/engine.js';
 import { predictCalibrated } from '../color/calibration.js';
@@ -29,6 +30,8 @@ export default function RecipeView({ db, compiled, settings, onSettings }) {
     const [gamut, setGamut] = React.useState([]);
     const [busy, setBusy] = React.useState(false);
     const [scanIdx, setScanIdx] = React.useState(null);
+    // 從歷史配方帶入時，色料清單要先換掉，濃度才對得上欄位順序
+    const [pendingLoad, setPendingLoad] = React.useState(null);
 
     const usable = (db.colorants || []).filter((c) => compiled.models[c.id]);
     const solverCols = React.useMemo(
@@ -38,6 +41,28 @@ export default function RecipeView({ db, compiled, settings, onSettings }) {
 
     const toggle = (id) =>
         setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+
+    /** 帶入一組 {colorantId: 有效濃度}：先換選取清單，等 solverCols 更新後再填濃度 */
+    const loadConcentrations = (byId) => {
+        setSelected(Object.keys(byId));
+        setPendingLoad(byId);
+    };
+
+    React.useEffect(() => {
+        if (!pendingLoad) return;
+        const ids = Object.keys(pendingLoad);
+        // 等 solverCols 真的換成這組色料了才填，否則濃度會對到錯的欄位
+        if (solverCols.length !== ids.length) return;
+        if (!ids.every((id) => solverCols.some((c) => c.id === id))) return;
+
+        const next = solverCols.map((c) => pendingLoad[c.id] ?? 0);
+        setSolution({
+            c: next, lab: null, dE00: null, diff: null, violations: [], inRange: [],
+        });
+        setManual(next);
+        setGamut(reachableGamut(solverCols, compiled.substrate, { samplesPerCombo: 150 }));
+        setPendingLoad(null);
+    }, [pendingLoad, solverCols, compiled]);
 
     /* ---------------- 反解 ---------------- */
     const run = () => {
@@ -183,10 +208,16 @@ export default function RecipeView({ db, compiled, settings, onSettings }) {
 
             {/* ---------- 中欄：結果 ---------- */}
             <div className="space-y-3">
+                <HistoryStartPanel
+                    target={target} compiled={compiled}
+                    threshold={settings.deltaEThreshold ?? 1}
+                    onLoad={loadConcentrations}
+                />
+
                 {!solution ? (
                     <Card title="配方結果">
                         <Empty>
-                            選好色料後按「反解配方」。<br />
+                            選好色料後按「反解配方」，或從上方挑一張接近的歷史配方當起點。<br />
                             程式會在最低含量限制下，找出最接近目標色的濃度組合。
                         </Empty>
                     </Card>

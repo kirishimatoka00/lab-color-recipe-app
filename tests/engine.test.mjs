@@ -140,3 +140,79 @@ test('缺本色與缺曲線會產生警告而非崩潰', () => {
     assert.ok(c.warnings.some((w) => w.includes('未建曲線色母')));
     assert.equal(c.hasBlank, false);
 });
+
+/* ---------------- 從歷史配方補模型 ---------------- */
+
+test('沒有濃度曲線的色料可由歷史配方反推出模型', () => {
+    const db = buildDb();
+    // 加一支完全沒有曲線的綠
+    const GREEN_K = [5.0, 0.8, 4.0];
+    db.colorants.push(makeColorant({
+        id: 'grn', name: 'Green SPD', pigmentLoading: 20, carrierId: 'carrier1', curve: [],
+    }));
+
+    // 造六張含綠的歷史配方，用量彼此獨立
+    const plans = [
+        { red: 2, grn: 1 }, { red: 1, grn: 3 }, { yel: 2, grn: 2 },
+        { grn: 4 }, { blu: 1, grn: 1.5 }, { red: 1, yel: 1, grn: 2.5 },
+    ];
+    const kOf = { red: [0.6, 7.0, 6.0], yel: [0.3, 1.2, 9.0], blu: [7.5, 4.0, 0.4], grn: GREEN_K };
+
+    db.formulations = plans.map((parts, i) => {
+        const K = [...sub.K];
+        for (const [key, dosage] of Object.entries(parts)) {
+            const c = (dosage * 20) / 100;
+            for (let j = 0; j < 3; j++) K[j] += kOf[key][j] * c;
+        }
+        return makeFormulation({
+            id: `h${i}`, name: `H${i}`, mode: RECIPE_MODE.DIRECT,
+            baseResinId: 'base1', carrierId: 'carrier1', condition: '',
+            components: Object.entries(parts).map(([key, v]) => ({ colorantId: key, value: v })),
+            measuredLab: ksToLab([0, 1, 2].map((j) => K[j] / sub.S[j])),
+        });
+    });
+
+    const c = compile(db, { baseResinId: 'base1', carrierId: 'carrier1', condition: '' });
+
+    assert.ok(c.models.grn, '綠應由歷史配方反推出模型：' + c.warnings.join('; '));
+    assert.equal(c.models.grn.source, 'history');
+    const got = c.models.grn.kAt(1);
+    for (let j = 0; j < 3; j++) {
+        assert.ok(Math.abs(got[j] - GREEN_K[j]) < 0.1, `ch${j}: ${got[j].toFixed(3)} vs ${GREEN_K[j]}`);
+    }
+    assert.ok(c.warnings.some((w) => w.includes('歷史配方反推')), '應提醒使用者模型來源');
+});
+
+test('歷史配方反推的模型會降低信心分數', () => {
+    const db = buildDb();
+    db.colorants.push(makeColorant({ id: 'grn', name: 'Green SPD', pigmentLoading: 20, carrierId: 'carrier1', curve: [] }));
+    const kOf = { red: [0.6, 7.0, 6.0], grn: [5.0, 0.8, 4.0] };
+    db.formulations = [{ red: 2, grn: 1 }, { red: 1, grn: 3 }, { grn: 4 }, { red: 3, grn: 2 }]
+        .map((parts, i) => {
+            const K = [...sub.K];
+            for (const [key, dosage] of Object.entries(parts)) {
+                const cc = (dosage * 20) / 100;
+                for (let j = 0; j < 3; j++) K[j] += kOf[key][j] * cc;
+            }
+            return makeFormulation({
+                id: `h${i}`, name: `H${i}`, mode: RECIPE_MODE.DIRECT,
+                baseResinId: 'base1', carrierId: 'carrier1', condition: '',
+                components: Object.entries(parts).map(([key, v]) => ({ colorantId: key, value: v })),
+                measuredLab: ksToLab([0, 1, 2].map((j) => K[j] / sub.S[j])),
+            });
+        });
+
+    const c = compile(db, { baseResinId: 'base1', carrierId: 'carrier1', condition: '' });
+    const withHistory = predictFormulation(makeFormulation({
+        mode: RECIPE_MODE.DIRECT, baseResinId: 'base1', carrierId: 'carrier1',
+        components: [{ colorantId: 'grn', value: 2 }],
+    }), c);
+    const withCurve = predictFormulation(makeFormulation({
+        mode: RECIPE_MODE.DIRECT, baseResinId: 'base1', carrierId: 'carrier1',
+        components: [{ colorantId: 'red', value: 2 }],
+    }), c);
+
+    assert.ok(withHistory.confidence.score < withCurve.confidence.score,
+        `歷史模型 ${withHistory.confidence.score} 應低於曲線模型 ${withCurve.confidence.score}`);
+    assert.ok(withHistory.confidence.reasons.some((r) => r.includes('歷史配方反推')));
+});

@@ -92,6 +92,40 @@ export function findCandidates({
 }
 
 /* ------------------------------------------------------------------ *
+ * 歷史配方檢索
+ * ------------------------------------------------------------------ */
+
+/**
+ * 找出實測色最接近目標的歷史配方。
+ *
+ * 配方師本來就是這樣工作的：先想「以前有沒有做過接近的」，
+ * 調出那張配方當起點，再微調。這個函式就是把那個動作自動化。
+ *
+ * @param {object} p
+ * @param {{l,a,b}} p.target
+ * @param {Array} p.formulations 有 measuredLab 的配方
+ * @param {Function} p.effective (formulation) => [{colorantId, colorant, c, dosage}]
+ * @param {number} [p.limit]
+ * @returns {Array<{formulation, dE00, diff, items, totalC}>}
+ */
+export function findSimilarFormulations({ target, formulations, effective, limit = 5 }) {
+    return formulations
+        .filter((f) => f.measuredLab)
+        .map((f) => {
+            const items = effective(f).filter((x) => x.c > 0);
+            return {
+                formulation: f,
+                dE00: deltaE00(f.measuredLab, target),
+                diff: colorDifference(f.measuredLab, target),
+                items,
+                totalC: items.reduce((s, x) => s + x.c, 0),
+            };
+        })
+        .sort((a, b) => a.dE00 - b.dE00)
+        .slice(0, limit);
+}
+
+/* ------------------------------------------------------------------ *
  * 修色
  * ------------------------------------------------------------------ */
 
@@ -186,4 +220,4 @@ export function correctionToWeights(correction, colorants, batchKg) {
     });
 }
 
-export default { findCandidates, correctBatch, correctionToWeights };
+export default { findCandidates, findSimilarFormulations, correctBatch, correctionToWeights };

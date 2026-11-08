@@ -12,6 +12,7 @@ import {
     makeSubstrate, DEFAULT_BLANK_LAB, fitColorant, fitWhite,
 } from './km.js';
 import { buildCalibration, calibrationKey, predictCalibrated } from './calibration.js';
+import { fitFromHistory } from './historyFit.js';
 import {
     COLORANT_ROLE, effectiveConcentrations, dosageToC,
 } from '../data/schema.js';
@@ -51,10 +52,12 @@ export function compile(db, ctx = {}) {
     }
 
     // --- 3. 彩色料 ---
+    const noCurve = [];
     for (const col of db.colorants || []) {
         if (models[col.id]) continue;
         const pts = curveToPoints(col, colorantsById, models);
-        if (pts.length < 1) { warnings.push(`「${col.name}」沒有濃度曲線資料，無法參與預測`); continue; }
+        // 先記下來。這支可能還能靠歷史配方反推，等第 4 步跑完再決定要不要警告。
+        if (pts.length < 1) { noCurve.push(col); continue; }
         const whiteModel = pts.find((p) => p.whiteModel)?.whiteModel || null;
         models[col.id] = fitColorant(
             pts.map((p) => ({ c: p.c, lab: p.lab, whiteC: p.whiteC })),
@@ -64,16 +67,54 @@ export function compile(db, ctx = {}) {
         if (worst < 0.9) warnings.push(`「${col.name}」濃度曲線擬合品質偏低（R²=${worst.toFixed(3)}）`);
     }
 
-    // --- 4. 校正 ---
+    // --- 4. 以歷史配方補上沒有濃度曲線的色料 ---
     const key = calibrationKey({ baseResinId: ctx.baseResinId, carrierId: ctx.carrierId, condition: ctx.condition });
-    const samples = (db.formulations || [])
-        .filter((f) => f.measuredLab && calibrationKey(f) === key)
-        .map((f) => ({
-            id: f.id,
-            items: effectiveConcentrations(f, colorantsById)
-                .filter((x) => x.colorant && models[x.colorantId])
-                .map((x) => ({ colorantId: x.colorantId, model: models[x.colorantId], c: x.c })),
-            measuredLab: f.measuredLab,
+    const inScope = (db.formulations || []).filter((f) => f.measuredLab && calibrationKey(f) === key);
+
+    // 以完整成分建樣本（含還沒有模型的色料），聯合擬合才看得到它們
+    const rawSamples = inScope.map((f) => ({
+        id: f.id,
+        measuredLab: f.measuredLab,
+        items: effectiveConcentrations(f, colorantsById)
+            .filter((x) => x.colorant && x.c > 0)
+            .map((x) => ({ colorantId: x.colorantId, c: x.c, model: models[x.colorantId] || null })),
+    }));
+
+    const unknownIds = [...new Set(
+        rawSamples.flatMap((s) => s.items.filter((it) => !it.model).map((it) => it.colorantId)),
+    )];
+
+    let historyFit = null;
+    if (unknownIds.length && rawSamples.length) {
+        historyFit = fitFromHistory({ samples: rawSamples, substrate, unknownIds });
+        Object.assign(models, historyFit.models);
+        for (const w of historyFit.warnings) {
+            // 警告裡帶的是 id，換成看得懂的名字
+            warnings.push(w.replace(/「([^」]+)」/, (m, id) => `「${colorantsById[id]?.name || id}」`));
+        }
+        const fittedNames = Object.keys(historyFit.models).map((id) => colorantsById[id]?.name || id);
+        if (fittedNames.length) {
+            warnings.push(
+                `${fittedNames.join('、')} 沒有濃度曲線，模型由 ${historyFit.sampleCount} 張歷史配方反推。` +
+                '這類模型只在歷史用量範圍內可信，外插風險高。',
+            );
+        }
+    }
+
+    // 既沒有曲線、歷史配方也救不回來的，到這裡才確定用不了
+    for (const col of noCurve) {
+        if (!models[col.id]) {
+            warnings.push(`「${col.name}」既沒有濃度曲線，也無法由歷史配方反推，不能參與預測`);
+        }
+    }
+
+    // --- 5. 校正 ---
+    const samples = rawSamples
+        .map((s) => ({
+            ...s,
+            items: s.items
+                .filter((it) => models[it.colorantId])
+                .map((it) => ({ colorantId: it.colorantId, model: models[it.colorantId], c: it.c })),
         }))
         .filter((s) => s.items.length > 0);
 
@@ -82,7 +123,11 @@ export function compile(db, ctx = {}) {
         warnings.push('歷史配方校正後誤差未改善，已略過色力校正（通常代表歷史資料條件不一致）');
     }
 
-    return { substrate, models, calib, warnings, hasBlank, colorantsById, resinsById, sampleCount: samples.length };
+    return {
+        substrate, models, calib, warnings, hasBlank,
+        colorantsById, resinsById, sampleCount: samples.length,
+        historyFit, formulationsInScope: inScope,
+    };
 }
 
 /**
