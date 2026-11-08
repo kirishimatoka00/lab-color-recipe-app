@@ -90,9 +90,9 @@ function App() {
     return (
         <div className="flex h-full flex-col bg-[var(--app-bg)] font-[Roboto,system-ui,sans-serif]">
             <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-strong surface px-4 py-2">
-                <h1 className="text-sm font-semibold text-main">配色配方預測</h1>
+                <h1 className="shrink-0 whitespace-nowrap text-sm font-semibold text-main">配色配方預測</h1>
 
-                <nav className="flex gap-1 rounded-lg surface-3 p-1">
+                <nav className="flex shrink-0 gap-1 rounded-lg surface-3 p-1">
                     {TABS.map((t) => (
                         <button key={t.id} onClick={() => setTab(t.id)}
                             className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
@@ -102,7 +102,7 @@ function App() {
                     ))}
                 </nav>
 
-                <div className="flex items-center gap-2 text-[11px] text-muted">
+                <div className="flex shrink-0 items-center gap-2 whitespace-nowrap text-[11px] text-muted">
                     <span>基礎樹酯</span>
                     <Select value={settings.baseResinId || ''} className="w-36 py-1 text-[11px]"
                         onChange={(e) => setSettings({ baseResinId: e.target.value || null })}>
@@ -117,7 +117,7 @@ function App() {
                     </Select>
                 </div>
 
-                <div className="ml-auto flex items-center gap-2">
+                <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
                     <Button onClick={toggle} title={dark ? '切換成白晝模式' : '切換成黑夜模式'}>
                         {dark ? '☀ 白晝' : '☾ 黑夜'}
                     </Button>
