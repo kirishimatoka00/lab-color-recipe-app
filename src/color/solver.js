@@ -134,11 +134,22 @@ export function solveRecipe({ target, colorants, substrate, maxTotalC = null, re
     };
 }
 
-/** 色料沒給上限時，取量測曲線上限的 2 倍作為搜尋範圍 */
+/** 反解搜尋用的上限：沒給就取量測曲線上限的 2 倍，容許一些外插 */
 function guessUpper(col) {
     const r = col.model && col.model.cRange;
     const top = r ? r[1] : 2;
     return Math.max(top * 2, 0.5);
+}
+
+/**
+ * 色域取樣用的上限。
+ * 與反解不同，這裡只取到量測範圍的上緣：超出去的部分本來就會被標成外插、
+ * 信心很低，畫進色域只會把圖的比例尺撐大，把真正在用的區域擠成一小塊。
+ */
+function gamutUpper(col) {
+    if (col.maxC && col.maxC > 0) return col.maxC;
+    const r = col.model && col.model.cRange;
+    return r ? r[1] : 2;
 }
 
 function buildStarts(colorants, hi, restarts) {
@@ -285,7 +296,7 @@ export function reachableGamut(colorants, substrate, { samplesPerCombo = 120, ma
             for (const i of idx) {
                 const col = colorants[i];
                 const lowC = Math.max(col.minC || 0, col.model?.cRange?.[0] ?? 0, 1e-4);
-                const highC = col.maxC && col.maxC > 0 ? col.maxC : guessUpper(col);
+                const highC = gamutUpper(col);
                 if (highC <= lowC) continue;
                 const c = lowC + rnd() * (highC - lowC);
                 total += c;

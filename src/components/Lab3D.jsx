@@ -158,9 +158,15 @@ export default function Lab3D({
         return Math.ceil((m * 1.1) / 20) * 20;
     }, [gamutPoints, target, predicted]);
 
+    // 相機距離跟著色域大小走，否則色域一大就被切掉、一小又離得老遠
+    const camera = React.useMemo(() => {
+        const d = Math.max(range * 2.1, 110);
+        return { position: [d * 0.62, d * 0.42, d * 0.72], fov: 45, near: 1, far: d * 8 };
+    }, [range]);
+
     return (
         <div style={{ height }} className="overflow-hidden rounded-md border border-base surface-2">
-            <Canvas camera={{ position: [120, 80, 140], fov: 45 }} dpr={[1, 2]}>
+            <Canvas camera={camera} dpr={[1, 2]}>
                 <ambientLight intensity={0.85} />
                 <directionalLight position={[80, 120, 60]} intensity={0.7} />
                 <Axes range={range} C={C} />
