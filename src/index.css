@@ -2,29 +2,89 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ------------------------------------------------------------------
+ * 主題變數
+ * 圖表是 SVG 與 WebGL，吃不到 Tailwind 的 dark: 變體，
+ * 所以顏色統一走 CSS 變數，兩邊共用同一組定義。
+ * ------------------------------------------------------------------ */
+:root {
+  --app-bg: #f1f5f9;
+  --plot-face: #fafafa;
+  --plot-frame: #e2e8f0;
+  --plot-grid: #eef2f7;
+  --plot-axis: #cbd5e1;
+  --plot-label: #94a3b8;
+  --plot-ink: #0f172a;
+}
+
+.dark {
+  --app-bg: #0b1120;
+  --plot-face: #111827;
+  --plot-frame: #334155;
+  --plot-grid: #1e293b;
+  --plot-axis: #475569;
+  --plot-label: #94a3b8;
+  --plot-ink: #e2e8f0;
+}
+
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
   overflow: hidden;
-  background-color: #1e1e24;
+  background-color: var(--app-bg);
   -webkit-tap-highlight-color: transparent;
-  /* 防止手機下拉重新整理 / 回彈 */
   overscroll-behavior: none;
 }
 
-/* Fix for React Root Height */
 #root { height: 100%; width: 100%; }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+.dark ::-webkit-scrollbar-thumb { background: #475569; }
 
-/* Animation */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 .tooltip-animate { animation: fadeIn 0.2s ease-out forwards; }
 
-/* 手機：避免長按選取文字與誤觸縮放 */
 button, [role="switch"] { touch-action: manipulation; }
+
+/* ------------------------------------------------------------------
+ * 語意化樣式
+ * 不直接在元件裡寫 slate-700 這類顏色，一律用這裡定義的語意名稱，
+ * 暗色模式才不會每加一個元件就漏掉一處。
+ * ------------------------------------------------------------------ */
+@layer components {
+  .surface      { @apply bg-white dark:bg-slate-900; }
+  .surface-2    { @apply bg-slate-50 dark:bg-slate-800/60; }
+  .surface-3    { @apply bg-slate-100 dark:bg-slate-800; }
+  .border-base  { @apply border-slate-200 dark:border-slate-700; }
+  .border-strong{ @apply border-slate-300 dark:border-slate-600; }
+  .hover-row    { @apply hover:bg-slate-50 dark:hover:bg-slate-800; }
+
+  .text-main    { @apply text-slate-800 dark:text-slate-100; }
+  .text-sub     { @apply text-slate-600 dark:text-slate-300; }
+  .text-muted   { @apply text-slate-500 dark:text-slate-400; }
+  .text-faint   { @apply text-slate-400 dark:text-slate-500; }
+  .text-ghost   { @apply text-slate-300 dark:text-slate-600; }
+
+  .accent-soft  { @apply bg-blue-50 dark:bg-blue-950/40; }
+  .accent-edge  { @apply border-blue-400 dark:border-blue-600; }
+  .text-accent  { @apply text-blue-700 dark:text-blue-300; }
+
+  .tone-warn {
+    @apply border-amber-200 bg-amber-50 text-amber-800
+           dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200;
+  }
+  .tone-bad {
+    @apply border-red-200 bg-red-50 text-red-700
+           dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300;
+  }
+  .tone-good {
+    @apply border-emerald-200 bg-emerald-50 text-emerald-700
+           dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300;
+  }
+  .text-good { @apply text-emerald-600 dark:text-emerald-400; }
+  .text-bad  { @apply text-red-600 dark:text-red-400; }
+  .text-warn { @apply text-amber-600 dark:text-amber-400; }
+}

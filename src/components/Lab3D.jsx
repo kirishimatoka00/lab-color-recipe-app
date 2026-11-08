@@ -4,6 +4,7 @@ import { OrbitControls, Text, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { ConvexGeometry } from 'three/examples/jsm/geometries/ConvexGeometry.js';
 import { labToRgbNormalized } from '../color/colorUtils.js';
+import { usePlotColors } from '../theme.jsx';
 
 /**
  * Lab 空間 3D 視圖。
@@ -49,29 +50,38 @@ function GamutHull({ points, opacity = 0.18 }) {
     );
 }
 
-function PointCloud({ points, max = 2500 }) {
-    const geometry = React.useMemo(() => {
-        if (!points?.length) return null;
+function PointCloud({ points, max = 2500, onPick }) {
+    // 畫面上畫的是抽樣後的點，點擊要回報原始資料，所以索引要一併留著
+    const { geometry, sampled } = React.useMemo(() => {
+        if (!points?.length) return { geometry: null, sampled: [] };
         const step = Math.max(1, Math.ceil(points.length / max));
-        const pos = [], col = [];
+        const pos = [], col = [], keep = [];
         for (let i = 0; i < points.length; i += step) {
             const p = points[i];
             const [x, y, z] = toXYZ(p);
             pos.push(x, y, z);
             const [r, g, b] = labToRgbNormalized(p.l, p.a, p.b);
             col.push(r, g, b);
+            keep.push(p);
         }
         const g = new THREE.BufferGeometry();
         g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
         g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-        return g;
+        return { geometry: g, sampled: keep };
     }, [points, max]);
 
     React.useEffect(() => () => geometry?.dispose(), [geometry]);
     if (!geometry) return null;
 
     return (
-        <points geometry={geometry}>
+        <points
+            geometry={geometry}
+            onPointerDown={onPick ? (e) => {
+                e.stopPropagation();
+                const p = sampled[e.index];
+                if (p) onPick({ nearest: p, at: { l: p.l, a: p.a, b: p.b }, which: 'gamut' });
+            } : undefined}
+        >
             <pointsMaterial size={1.6} vertexColors sizeAttenuation transparent opacity={0.55} />
         </points>
     );
@@ -104,8 +114,8 @@ function Marker({ lab, label, shape = 'sphere', color, size = 3 }) {
     );
 }
 
-function Axes({ range = 60 }) {
-    const grey = '#94a3b8';
+function Axes({ range = 60, C }) {
+    const grey = C.label;
     const ticks = [];
     for (let v = -range; v <= range; v += 20) {
         if (v === 0) continue;
@@ -128,7 +138,7 @@ function Axes({ range = 60 }) {
             <Text position={[0, -50, range + 8]} fontSize={5} color="#ca8a04" anchorX="center">+b*</Text>
             <Text position={[0, -50, -range - 8]} fontSize={5} color="#2563eb" anchorX="center">−b*</Text>
             <Text position={[0, 56, 0]} fontSize={5} color={grey} anchorX="center">L* 100</Text>
-            <gridHelper args={[range * 2, 12, '#e2e8f0', '#eef2f7']} position={[0, -50, 0]} />
+            <gridHelper args={[range * 2, 12, C.frame, C.grid]} position={[0, -50, 0]} />
             {ticks}
         </>
     );
@@ -136,8 +146,9 @@ function Axes({ range = 60 }) {
 
 export default function Lab3D({
     gamutPoints = [], target = null, predicted = null, corrections = null,
-    showCloud = true, showHull = true, height = 420,
+    showCloud = true, showHull = true, height = 420, onPick = null,
 }) {
+    const C = usePlotColors();
     const corrColors = { C1: '#f97316', C2: '#06b6d4', C3: '#22c55e' };
     const range = React.useMemo(() => {
         let m = 40;
@@ -148,13 +159,13 @@ export default function Lab3D({
     }, [gamutPoints, target, predicted]);
 
     return (
-        <div style={{ height }} className="overflow-hidden rounded-md border border-slate-200 bg-slate-50">
+        <div style={{ height }} className="overflow-hidden rounded-md border border-base surface-2">
             <Canvas camera={{ position: [120, 80, 140], fov: 45 }} dpr={[1, 2]}>
                 <ambientLight intensity={0.85} />
                 <directionalLight position={[80, 120, 60]} intensity={0.7} />
-                <Axes range={range} />
+                <Axes range={range} C={C} />
                 {showHull && <GamutHull points={gamutPoints} />}
-                {showCloud && <PointCloud points={gamutPoints} />}
+                {showCloud && <PointCloud points={gamutPoints} onPick={onPick} />}
 
                 {corrections && target && ['C1', 'C2', 'C3'].map((k) => {
                     const c = corrections[k];
@@ -167,7 +178,7 @@ export default function Lab3D({
                     );
                 })}
 
-                <Marker lab={predicted} label="預測" color="#0f172a" />
+                <Marker lab={predicted} label="預測" color={C.ink} />
                 <Marker lab={target} label="目標" color="#dc2626" shape="box" />
 
                 <OrbitControls enablePan enableZoom makeDefault />

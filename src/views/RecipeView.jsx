@@ -8,6 +8,7 @@ import Lab3D from '../components/Lab3D.jsx';
 import CandidatesPanel from '../components/CandidatesPanel.jsx';
 import CorrectionPanel from '../components/CorrectionPanel.jsx';
 import HistoryStartPanel from '../components/HistoryStartPanel.jsx';
+import PickInspector from '../components/PickInspector.jsx';
 import { solveRecipe, dosageScan, substitute, reachableGamut } from '../color/solver.js';
 import { buildSolverColorants } from '../color/engine.js';
 import { predictCalibrated } from '../color/calibration.js';
@@ -32,6 +33,8 @@ export default function RecipeView({ db, compiled, settings, onSettings }) {
     const [scanIdx, setScanIdx] = React.useState(null);
     // 從歷史配方帶入時，色料清單要先換掉，濃度才對得上欄位順序
     const [pendingLoad, setPendingLoad] = React.useState(null);
+    const [pick, setPick] = React.useState(null);
+    const [plotBig, setPlotBig] = React.useState(false);
 
     const usable = (db.colorants || []).filter((c) => compiled.models[c.id]);
     const solverCols = React.useMemo(
@@ -139,13 +142,13 @@ export default function RecipeView({ db, compiled, settings, onSettings }) {
     }, [scanIdx, current, solverCols, compiled]);
 
     return (
-        <div className="grid h-full grid-cols-1 gap-3 overflow-auto p-3 lg:grid-cols-[320px_minmax(0,1fr)_380px]">
+        <div className="grid h-full grid-cols-1 gap-3 overflow-auto p-3 xl:grid-cols-[290px_minmax(0,1fr)_minmax(460px,0.95fr)] lg:grid-cols-[260px_minmax(0,1fr)]">
 
             {/* ---------- 左欄：目標與色料 ---------- */}
             <div className="space-y-3">
                 <Card title="目標色">
                     <LabInput lab={target} onChange={setTarget} />
-                    <div className="mt-2 text-[11px] text-slate-400">
+                    <div className="mt-2 text-[11px] text-faint">
                         也可以從歷史配方頁把實測色帶過來當目標。
                     </div>
                 </Card>
@@ -164,15 +167,15 @@ export default function RecipeView({ db, compiled, settings, onSettings }) {
                                         key={c.id}
                                         onClick={() => toggle(c.id)}
                                         className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left transition-colors ${
-                                            on ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}
+                                            on ? 'accent-edge accent-soft' : 'border-base hover-row'}`}
                                     >
                                         <input type="checkbox" readOnly checked={on} className="pointer-events-none" />
                                         <Swatch lab={c.curve?.[Math.floor(c.curve.length / 2)]?.lab} size={18} />
-                                        <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-700">
+                                        <span className="min-w-0 flex-1 truncate text-xs font-medium text-sub">
                                             {c.name || '(未命名)'}
-                                            {c.role === COLORANT_ROLE.WHITE && <span className="ml-1 text-[10px] text-slate-400">白</span>}
+                                            {c.role === COLORANT_ROLE.WHITE && <span className="ml-1 text-[10px] text-faint">白</span>}
                                         </span>
-                                        <span className="shrink-0 font-mono text-[10px] text-slate-400">
+                                        <span className="shrink-0 font-mono text-[10px] text-faint">
                                             {m?.cRange ? `${fmt(m.cRange[0], 2)}–${fmt(m.cRange[1], 2)}%` : ''}
                                         </span>
                                     </button>
@@ -235,19 +238,19 @@ export default function RecipeView({ db, compiled, settings, onSettings }) {
                             <div className="mb-3 flex items-center gap-3">
                                 <div className="text-center">
                                     <Swatch lab={target} size={44} />
-                                    <div className="mt-1 text-[10px] text-slate-500">目標</div>
+                                    <div className="mt-1 text-[10px] text-muted">目標</div>
                                 </div>
                                 <div className="text-center">
                                     <Swatch lab={live?.lab} size={44} />
-                                    <div className="mt-1 text-[10px] text-slate-500">預測</div>
+                                    <div className="mt-1 text-[10px] text-muted">預測</div>
                                 </div>
                                 {live && (
                                     <dl className="grid flex-1 grid-cols-3 gap-x-3 gap-y-1 font-mono text-[11px]">
                                         {[['ΔL*', live.diff.dL], ['Δa*', live.diff.da], ['Δb*', live.diff.db],
                                           ['ΔC*', live.diff.dC], ['ΔH*', live.diff.dH], ['ΔE₇₆', live.diff.dE76]].map(([k, v]) => (
                                             <div key={k} className="flex justify-between">
-                                                <dt className="text-slate-400">{k}</dt>
-                                                <dd className="text-slate-700">{v >= 0 ? '+' : ''}{v.toFixed(2)}</dd>
+                                                <dt className="text-faint">{k}</dt>
+                                                <dd className="text-sub">{v >= 0 ? '+' : ''}{v.toFixed(2)}</dd>
                                             </div>
                                         ))}
                                     </dl>
@@ -256,7 +259,7 @@ export default function RecipeView({ db, compiled, settings, onSettings }) {
 
                             <table className="w-full text-xs">
                                 <thead>
-                                    <tr className="border-b border-slate-200 text-left text-[10px] uppercase tracking-wide text-slate-400">
+                                    <tr className="border-b border-base text-left text-[10px] uppercase tracking-wide text-faint">
                                         <th className="py-1">色料</th>
                                         <th className="py-1 text-right">顏料濃度 wt%</th>
                                         <th className="py-1 text-right">色母添加 wt%</th>
@@ -275,7 +278,7 @@ export default function RecipeView({ db, compiled, settings, onSettings }) {
                                                 <td className="py-1.5">
                                                     <div className="flex items-center gap-1.5">
                                                         <Swatch lab={col.colorant?.curve?.[0]?.lab} size={14} />
-                                                        <span className={c > 0 ? 'text-slate-700' : 'text-slate-300'}>{col.name}</span>
+                                                        <span className={c > 0 ? 'text-sub' : 'text-ghost'}>{col.name}</span>
                                                     </div>
                                                 </td>
                                                 <td className="py-1.5 text-right">
@@ -287,16 +290,16 @@ export default function RecipeView({ db, compiled, settings, onSettings }) {
                                                         className="w-24 py-0.5 text-right font-mono text-[11px]"
                                                     />
                                                 </td>
-                                                <td className="py-1.5 text-right font-mono text-slate-600">
+                                                <td className="py-1.5 text-right font-mono text-sub">
                                                     {c > 0 ? fmt(cToDosage(c, col.colorant), 3) : '—'}
                                                 </td>
-                                                <td className="py-1.5 text-right font-mono text-slate-400">
+                                                <td className="py-1.5 text-right font-mono text-faint">
                                                     {col.minC > 0 ? fmt(col.minC) : '—'}
                                                 </td>
                                                 <td className="py-1.5 text-center">
-                                                    {c <= 0 ? <span className="text-slate-300">未用</span>
-                                                        : inRange ? <span className="text-emerald-600">內插</span>
-                                                            : <span className="text-amber-600">外插</span>}
+                                                    {c <= 0 ? <span className="text-ghost">未用</span>
+                                                        : inRange ? <span className="text-good">內插</span>
+                                                            : <span className="text-warn">外插</span>}
                                                 </td>
                                                 <td className="py-1.5 text-right">
                                                     <Button variant="ghost"
@@ -309,12 +312,12 @@ export default function RecipeView({ db, compiled, settings, onSettings }) {
                                     })}
                                 </tbody>
                                 <tfoot>
-                                    <tr className="border-t border-slate-300 font-medium">
-                                        <td className="py-1.5 text-slate-500">合計</td>
-                                        <td className="py-1.5 text-right font-mono text-slate-700">
+                                    <tr className="border-t border-strong font-medium">
+                                        <td className="py-1.5 text-muted">合計</td>
+                                        <td className="py-1.5 text-right font-mono text-sub">
                                             {fmt(current.reduce((s, v) => s + v, 0))}
                                         </td>
-                                        <td className="py-1.5 text-right font-mono text-slate-700">
+                                        <td className="py-1.5 text-right font-mono text-sub">
                                             {fmt(current.reduce((s, v, i) => s + (v > 0 ? cToDosage(v, solverCols[i].colorant) : 0), 0))}
                                         </td>
                                         <td colSpan={3} />
@@ -334,7 +337,7 @@ export default function RecipeView({ db, compiled, settings, onSettings }) {
                                 </div>
                             )}
                             {live?.confidence?.reasons?.length > 0 && (
-                                <ul className="mt-2 space-y-0.5 text-[11px] text-slate-500">
+                                <ul className="mt-2 space-y-0.5 text-[11px] text-muted">
                                     {live.confidence.reasons.map((r, i) => <li key={i}>· {r}</li>)}
                                 </ul>
                             )}
@@ -343,7 +346,7 @@ export default function RecipeView({ db, compiled, settings, onSettings }) {
                         {mbPlan && (
                             <Card title={`母粒組成（letdown ${letdown}%）`}>
                                 {!mbPlan.feasible && (
-                                    <div className="mb-2 rounded-md border border-red-200 bg-red-50 p-2 text-[11px] text-red-700">
+                                    <div className="mb-2 rounded-md border tone-bad p-2 text-[11px]">
                                         各成分加起來超過 100%，這個 letdown 太低。請提高 letdown 或改用含量更高的色母。
                                     </div>
                                 )}
@@ -351,15 +354,15 @@ export default function RecipeView({ db, compiled, settings, onSettings }) {
                                     <tbody>
                                         {mbPlan.components.map((c) => (
                                             <tr key={c.colorantId} className="border-b border-slate-100">
-                                                <td className="py-1 text-slate-700">
+                                                <td className="py-1 text-sub">
                                                     {compiled.colorantsById[c.colorantId]?.name}
                                                 </td>
-                                                <td className="py-1 text-right font-mono text-slate-700">{fmt(c.value)} %</td>
+                                                <td className="py-1 text-right font-mono text-sub">{fmt(c.value)} %</td>
                                             </tr>
                                         ))}
                                         <tr>
-                                            <td className="py-1 text-slate-500">載體樹酯</td>
-                                            <td className={`py-1 text-right font-mono ${mbPlan.carrierPct < 0 ? 'text-red-600' : 'text-slate-500'}`}>
+                                            <td className="py-1 text-muted">載體樹酯</td>
+                                            <td className={`py-1 text-right font-mono ${mbPlan.carrierPct < 0 ? 'text-bad' : 'text-muted'}`}>
                                                 {fmt(mbPlan.carrierPct)} %
                                             </td>
                                         </tr>
@@ -396,35 +399,60 @@ export default function RecipeView({ db, compiled, settings, onSettings }) {
             </div>
 
             {/* ---------- 右欄：色度圖 ---------- */}
-            <div className="space-y-3">
+            <div className={`space-y-3 ${plotBig ? 'xl:col-span-3' : ''}`}>
                 <Card
                     title="色度圖"
-                    right={<Tabs value={plotTab} onChange={setPlotTab}
-                        tabs={[{ id: 'ab', label: 'a*–b*' }, { id: 'lc', label: 'C*–L*' }, { id: '3d', label: '3D' }]} />}
+                    right={
+                        <div className="flex items-center gap-2">
+                            <Tabs value={plotTab} onChange={setPlotTab}
+                                tabs={[{ id: 'ab', label: 'a*–b*' }, { id: 'lc', label: 'C*–L*' }, { id: '3d', label: '3D' }]} />
+                            <Button onClick={() => setPlotBig((v) => !v)}>
+                                {plotBig ? '縮小' : '放大'}
+                            </Button>
+                        </div>
+                    }
                 >
-                    {plotTab === '3d' ? (
-                        <Lab3D
-                            gamutPoints={gamut}
-                            target={target}
-                            predicted={live?.lab}
-                            corrections={corrections && !corrections.isInside ? corrections : null}
-                            height={360}
-                        />
-                    ) : (
-                        <LabPlot
-                            mode={plotTab}
-                            gamutPoints={gamut}
-                            target={target}
-                            predicted={live?.lab}
-                            corrections={corrections && !corrections.isInside ? corrections : null}
-                            size={360}
-                        />
+                    <div className={plotBig ? 'mx-auto max-w-[760px]' : ''}>
+                        {plotTab === '3d' ? (
+                            <Lab3D
+                                gamutPoints={gamut}
+                                target={target}
+                                predicted={live?.lab}
+                                corrections={corrections && !corrections.isInside ? corrections : null}
+                                height={plotBig ? 640 : 470}
+                                onPick={setPick}
+                            />
+                        ) : (
+                            <LabPlot
+                                mode={plotTab}
+                                gamutPoints={gamut}
+                                target={target}
+                                predicted={live?.lab}
+                                corrections={corrections && !corrections.isInside ? corrections : null}
+                                size={plotBig ? 640 : 470}
+                                onPick={setPick}
+                            />
+                        )}
+                    </div>
+
+                    {pick && (
+                        <div className="mt-2">
+                            <PickInspector
+                                pick={pick} solverCols={solverCols} target={target}
+                                onApply={(c) => { setManual(c); setPick(null); }}
+                                onClose={() => setPick(null)}
+                            />
+                        </div>
                     )}
-                    {gamut.length > 0 && (
-                        <div className="mt-2 text-[11px] text-slate-500">
+
+                    {gamut.length > 0 && !pick && (
+                        <div className="mt-2 text-[11px] text-muted">
                             {corrections?.isInside
                                 ? '目標色在這組色料的可達範圍內。'
                                 : '目標色超出可達範圍，虛線為三種修正建議的落點。'}
+                            <span className="ml-1 text-faint">
+                                {plotTab === '3d' ? '點色域上的取樣點可看配方。' : '點圖上任一處可查最接近的取樣配方。'}
+                            </span>
                         </div>
                     )}
                 </Card>
@@ -466,9 +494,9 @@ function ScanChart({ scan, current }) {
                     const idx = Math.round(f * (scan.length - 1));
                     const s = scan[idx];
                     return (
-                        <div key={f} className="rounded border border-slate-200 p-1.5">
-                            <div className="font-mono text-slate-700">{fmt(s.c)}%</div>
-                            <div className="text-slate-400">L {s.lab.l.toFixed(1)} a {s.lab.a.toFixed(1)} b {s.lab.b.toFixed(1)}</div>
+                        <div key={f} className="rounded border border-base p-1.5">
+                            <div className="font-mono text-sub">{fmt(s.c)}%</div>
+                            <div className="text-faint">L {s.lab.l.toFixed(1)} a {s.lab.a.toFixed(1)} b {s.lab.b.toFixed(1)}</div>
                         </div>
                     );
                 })}
@@ -486,7 +514,7 @@ function CorrectionTable({ corrections }) {
     return (
         <table className="w-full text-[11px]">
             <thead>
-                <tr className="border-b border-slate-200 text-left text-[10px] uppercase text-slate-400">
+                <tr className="border-b border-base text-left text-[10px] uppercase text-faint">
                     <th className="py-1">修正</th><th>L*</th><th>a*</th><th>b*</th><th className="text-right">ΔE</th>
                 </tr>
             </thead>
@@ -494,18 +522,18 @@ function CorrectionTable({ corrections }) {
                 {rows.map(([key, desc, c]) => (
                     <tr key={key} className="border-b border-slate-100 last:border-0">
                         <td className="py-1.5">
-                            <div className="font-semibold text-slate-700">{key}</div>
-                            <div className="text-[10px] text-slate-400">{desc}</div>
+                            <div className="font-semibold text-sub">{key}</div>
+                            <div className="text-[10px] text-faint">{desc}</div>
                         </td>
                         {c ? (
                             <>
-                                <td className="font-mono text-slate-600">{c.l.toFixed(1)}</td>
-                                <td className="font-mono text-slate-600">{c.a.toFixed(1)}</td>
-                                <td className="font-mono text-slate-600">{c.b.toFixed(1)}</td>
-                                <td className="text-right font-mono text-slate-700">{c.dE.toFixed(2)}</td>
+                                <td className="font-mono text-sub">{c.l.toFixed(1)}</td>
+                                <td className="font-mono text-sub">{c.a.toFixed(1)}</td>
+                                <td className="font-mono text-sub">{c.b.toFixed(1)}</td>
+                                <td className="text-right font-mono text-sub">{c.dE.toFixed(2)}</td>
                             </>
                         ) : (
-                            <td colSpan={4} className="text-center text-slate-300">無解</td>
+                            <td colSpan={4} className="text-center text-ghost">無解</td>
                         )}
                     </tr>
                 ))}
@@ -535,7 +563,7 @@ function SubstitutionPanel({ solverCols, current, compiled, usable, target }) {
                         {solverCols.map((c, i) => <option key={c.id} value={i}>{c.name}</option>)}
                     </Select>
                 </Field>
-                <span className="pb-2 text-xs text-slate-400">換成</span>
+                <span className="pb-2 text-xs text-faint">換成</span>
                 <Field label="這支（維持相同有效濃度）" className="flex-1">
                     <Select value={to} onChange={(e) => setTo(e.target.value)}>
                         <option value="">選擇色料…</option>
@@ -548,14 +576,14 @@ function SubstitutionPanel({ solverCols, current, compiled, usable, target }) {
             {result && (
                 <div className="mt-3 flex items-center gap-3">
                     <Swatch lab={result.before} size={36} />
-                    <span className="text-slate-400">→</span>
+                    <span className="text-faint">→</span>
                     <Swatch lab={result.after} size={36} />
                     <div className="flex-1 text-[11px]">
-                        <div className="text-slate-600">
+                        <div className="text-sub">
                             位移 ΔE₀₀ <span className="font-mono font-semibold">{result.dE00.toFixed(2)}</span>
                             （ΔL {result.diff.dL.toFixed(1)} · Δa {result.diff.da.toFixed(1)} · Δb {result.diff.db.toFixed(1)}）
                         </div>
-                        <div className="text-slate-400">
+                        <div className="text-faint">
                             換完後對目標色的 ΔE₀₀ = <span className="font-mono">{result.toTarget.dE00.toFixed(2)}</span>
                         </div>
                     </div>

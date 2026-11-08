@@ -279,6 +279,8 @@ export function reachableGamut(colorants, substrate, { samplesPerCombo = 120, ma
         const per = Math.max(8, Math.round(samplesPerCombo / Math.max(1, idx.length)));
         for (let s = 0; s < per; s++) {
             const items = [];
+            // 記下這個取樣點的配方，讓使用者在圖上點擊時能看到「這個顏色怎麼做出來」
+            const recipe = new Array(n).fill(0);
             let total = 0;
             for (const i of idx) {
                 const col = colorants[i];
@@ -287,12 +289,13 @@ export function reachableGamut(colorants, substrate, { samplesPerCombo = 120, ma
                 if (highC <= lowC) continue;
                 const c = lowC + rnd() * (highC - lowC);
                 total += c;
+                recipe[i] = c;
                 items.push({ model: col.model, c, strength: col.strength });
             }
             if (!items.length) continue;
             if (maxTotalC && total > maxTotalC) continue;
             const lab = mixToLab(items, substrate).lab;
-            pts.push({ ...lab, mask });
+            pts.push({ ...lab, mask, recipe, totalC: total });
         }
     }
     return pts;

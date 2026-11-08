@@ -12,6 +12,7 @@ import LibraryView from './views/LibraryView.jsx';
 import HistoryView from './views/HistoryView.jsx';
 import { Button, Select, Warnings } from './components/ui.jsx';
 import { demoDb } from './data/demo.js';
+import { ThemeProvider, useTheme } from './theme.jsx';
 
 const TABS = [
     { id: 'recipe', label: '配方工作台' },
@@ -20,6 +21,7 @@ const TABS = [
 ];
 
 function App() {
+    const { dark, toggle } = useTheme();
     const [db, setDb] = React.useState(() => loadDb());
     const [tab, setTab] = React.useState('recipe');
     const fileRef = React.useRef(null);
@@ -86,21 +88,21 @@ function App() {
     const carriers = db.resins.filter((r) => r.usage !== 'base');
 
     return (
-        <div className="flex h-full flex-col bg-slate-100 font-[Roboto,system-ui,sans-serif]">
-            <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-slate-300 bg-white px-4 py-2">
-                <h1 className="text-sm font-semibold text-slate-800">配色配方預測</h1>
+        <div className="flex h-full flex-col bg-[var(--app-bg)] font-[Roboto,system-ui,sans-serif]">
+            <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-strong surface px-4 py-2">
+                <h1 className="text-sm font-semibold text-main">配色配方預測</h1>
 
-                <nav className="flex gap-1 rounded-lg bg-slate-100 p-1">
+                <nav className="flex gap-1 rounded-lg surface-3 p-1">
                     {TABS.map((t) => (
                         <button key={t.id} onClick={() => setTab(t.id)}
                             className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-                                tab === t.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                                tab === t.id ? 'surface text-main shadow-sm' : 'text-muted hover:text-main'}`}>
                             {t.label}
                         </button>
                     ))}
                 </nav>
 
-                <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                <div className="flex items-center gap-2 text-[11px] text-muted">
                     <span>基礎樹酯</span>
                     <Select value={settings.baseResinId || ''} className="w-36 py-1 text-[11px]"
                         onChange={(e) => setSettings({ baseResinId: e.target.value || null })}>
@@ -116,13 +118,16 @@ function App() {
                 </div>
 
                 <div className="ml-auto flex items-center gap-2">
+                    <Button onClick={toggle} title={dark ? '切換成白晝模式' : '切換成黑夜模式'}>
+                        {dark ? '☀ 白晝' : '☾ 黑夜'}
+                    </Button>
                     {db.colorants.length === 0 && (
                         <Button onClick={() => setDb(demoDb())}>載入範例資料</Button>
                     )}
                     <Button onClick={() => saveXlsx(exportExcel(db, compiled))}>匯出 Excel</Button>
                     <Button onClick={() => xlsxRef.current?.click()}>匯入 Excel</Button>
                     <Button variant="ghost" onClick={() => saveXlsx(templateExcel())}>空白範本</Button>
-                    <span className="mx-1 h-4 w-px bg-slate-200" />
+                    <span className="mx-1 h-4 w-px bg-slate-200 dark:bg-slate-700" />
                     <Button onClick={() => {
                         const { filename, content } = exportJson(db);
                         download(filename, content);
@@ -137,7 +142,7 @@ function App() {
             </header>
 
             {compiled.warnings.length > 0 && (
-                <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-2">
+                <div className="shrink-0 border-b border-base surface px-4 py-2">
                     <Warnings items={compiled.warnings} />
                 </div>
             )}
@@ -157,4 +162,8 @@ function App() {
     );
 }
 
-createRoot(document.getElementById('root')).render(<App />);
+createRoot(document.getElementById('root')).render(
+    <ThemeProvider>
+        <App />
+    </ThemeProvider>,
+);

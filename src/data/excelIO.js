@@ -143,9 +143,20 @@ export function exportExcel(db, compiled = null) {
         });
     }
 
+    // 設定也要進去，不然匯出的檔案少了「這批資料是在什麼條件下成立的」
+    const settings = [
+        { 項目: 'baseResin', 值: resinName(db.settings?.baseResinId), 說明: '基礎樹酯（以名稱對應）' },
+        { 項目: 'carrier', 值: resinName(db.settings?.carrierId), 說明: '母粒載體（以名稱對應）' },
+        { 項目: 'condition', 值: db.settings?.condition ?? '', 說明: '量測條件；只有相同條件的配方會一起校正' },
+        { 項目: 'maxTotalC', 值: db.settings?.maxTotalC ?? '', 說明: '顏料總量上限 wt%，空白為不限' },
+        { 項目: 'deltaEThreshold', 值: db.settings?.deltaEThreshold ?? 1, 說明: 'ΔE00 合格門檻，只影響顯示顏色' },
+        { 項目: 'schemaVersion', 值: db.version ?? 1, 說明: '資料結構版本，請勿修改' },
+    ];
+
     const wb = XLSX.utils.book_new();
     const add = (rows, sheet) =>
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), sheet);
+    add(settings, 'Settings');
     add(resins, 'Resins');
     add(colorants, 'Colorants');
     add(curves, 'Curves');
@@ -288,7 +299,25 @@ export function importExcel(arrayBuffer, db) {
         }
     }
 
-    return { db: { ...db, resins, colorants, formulations }, report };
+    // --- Settings：最後讀，因為要用名稱對應到上面剛建好的樹酯 ---
+    let settings = { ...db.settings };
+    const settingRows = sheet('Settings');
+    if (settingRows.length) {
+        const kv = {};
+        for (const row of settingRows) {
+            const k = str(row['項目'] ?? row.key ?? row.Key ?? row.item);
+            if (k) kv[k] = row['值'] ?? row.value ?? row.Value ?? '';
+        }
+        const byName = (n) => resins.find((r) => r.name === str(n))?.id ?? null;
+        if ('baseResin' in kv) settings.baseResinId = byName(kv.baseResin);
+        if ('carrier' in kv) settings.carrierId = byName(kv.carrier);
+        if ('condition' in kv) settings.condition = str(kv.condition);
+        if ('maxTotalC' in kv) settings.maxTotalC = num(kv.maxTotalC);
+        if ('deltaEThreshold' in kv) settings.deltaEThreshold = num(kv.deltaEThreshold, 1);
+        bump(report.updated, '設定');
+    }
+
+    return { db: { ...db, resins, colorants, formulations, settings }, report };
 }
 
 /** 空白範本，給還沒有資料的人照著填 */
@@ -297,6 +326,13 @@ export function templateExcel() {
     const add = (rows, sheet) =>
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), sheet);
 
+    add([
+        { 項目: 'baseResin', 值: 'PP 射出級', 說明: '基礎樹酯（以名稱對應）' },
+        { 項目: 'carrier', 值: 'PE 載體', 說明: '母粒載體（以名稱對應）' },
+        { 項目: 'condition', 值: '2mm 射出板 / SCI', 說明: '量測條件；只有相同條件的配方會一起校正' },
+        { 項目: 'maxTotalC', 值: '', 說明: '顏料總量上限 wt%，空白為不限' },
+        { 項目: 'deltaEThreshold', 值: 1, 說明: 'ΔE00 合格門檻' },
+    ], 'Settings');
     add([{ 名稱: 'PP 射出級', 牌號: 'H1500', 用途: 'base', MFI: 12, 本色L: 92.4, 本色a: -0.7, 本色b: 2.6, 備註: '' },
          { 名稱: 'PE 載體', 牌號: 'LDPE', 用途: 'carrier', MFI: '', 本色L: '', 本色a: '', 本色b: '', 備註: '' }], 'Resins');
     add([{ 名稱: '白 SPD', 編號: 'W-50', 型態: 'SPD', 角色: 'white', 顏料含量: 50, 載體: 'PE 載體', 最低含量: 0.1, 最高含量: '', 供應商: '', 備註: '' },

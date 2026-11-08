@@ -35,13 +35,13 @@ export default function HistoryStartPanel({ target, compiled, threshold, onLoad 
 
     return (
         <Card title="從歷史配方開始">
-            <p className="mb-2 text-[11px] text-slate-500">
+            <p className="mb-2 text-[11px] text-muted">
                 實測色最接近目標的既有配方。點「以此為起點」會把它的色料與用量帶進上方，
                 接著可以直接反解微調，或用修色算出要加減多少。
             </p>
             <table className="w-full text-xs">
                 <thead>
-                    <tr className="border-b border-slate-200 text-left text-[10px] uppercase tracking-wide text-slate-400">
+                    <tr className="border-b border-base text-left text-[10px] uppercase tracking-wide text-faint">
                         <th className="py-1">配方</th>
                         <th className="py-1">成分</th>
                         <th className="py-1 text-right">與目標差距</th>
@@ -53,13 +53,13 @@ export default function HistoryStartPanel({ target, compiled, threshold, onLoad 
                         const f = row.formulation;
                         const usable = row.items.filter((x) => compiled.models[x.colorantId]);
                         return (
-                            <tr key={f.id} className={`border-b border-slate-100 last:border-0 ${i === 0 ? 'bg-blue-50/40' : ''}`}>
+                            <tr key={f.id} className={`border-b border-slate-100 last:border-0 ${i === 0 ? 'accent-soft' : ''}`}>
                                 <td className="py-2 align-top">
                                     <div className="flex items-center gap-1.5">
                                         <Swatch lab={f.measuredLab} size={20} />
                                         <div>
-                                            <div className="font-medium text-slate-700">{f.name}</div>
-                                            <div className="text-[10px] text-slate-400">{f.date} · {f.status}</div>
+                                            <div className="font-medium text-sub">{f.name}</div>
+                                            <div className="text-[10px] text-faint">{f.date} · {f.status}</div>
                                         </div>
                                     </div>
                                 </td>
@@ -67,15 +67,15 @@ export default function HistoryStartPanel({ target, compiled, threshold, onLoad 
                                     <div className="space-y-0.5">
                                         {row.items.map((x) => (
                                             <div key={x.colorantId} className="flex justify-between gap-3 text-[11px]">
-                                                <span className="text-slate-600">{x.colorant?.name}</span>
-                                                <span className="font-mono text-slate-500">{fmt(x.c)}%</span>
+                                                <span className="text-sub">{x.colorant?.name}</span>
+                                                <span className="font-mono text-muted">{fmt(x.c)}%</span>
                                             </div>
                                         ))}
                                     </div>
                                 </td>
                                 <td className="py-2 text-right align-top">
                                     <DeltaEBadge value={row.dE00} threshold={threshold} />
-                                    <div className="mt-1 font-mono text-[10px] text-slate-400">
+                                    <div className="mt-1 font-mono text-[10px] text-faint">
                                         ΔL {row.diff.dL >= 0 ? '+' : ''}{row.diff.dL.toFixed(1)}
                                         {' '}Δa {row.diff.da >= 0 ? '+' : ''}{row.diff.da.toFixed(1)}
                                         {' '}Δb {row.diff.db >= 0 ? '+' : ''}{row.diff.db.toFixed(1)}
@@ -90,7 +90,7 @@ export default function HistoryStartPanel({ target, compiled, threshold, onLoad 
                                         以此為起點
                                     </Button>
                                     {usable.length < row.items.length && (
-                                        <div className="mt-1 text-[10px] text-amber-600">
+                                        <div className="mt-1 text-[10px] text-warn">
                                             有 {row.items.length - usable.length} 支色料尚未建模
                                         </div>
                                     )}

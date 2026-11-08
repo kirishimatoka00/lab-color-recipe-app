@@ -120,3 +120,25 @@ test('範本可產生且自身可被匯入', () => {
     assert.equal(db.formulations.length, 1);
     assert.equal(report.skipped.length, 0, report.skipped.join('; '));
 });
+
+test('設定分頁一併往返，匯入後條件與樹酯都對得回來', () => {
+    const src = demoDb();
+    const { buffer } = exportExcel(src, compile(src, src.settings));
+    const { db: back } = importExcel(buffer, emptyDb());
+
+    assert.equal(back.settings.condition, src.settings.condition);
+    assert.equal(back.settings.deltaEThreshold, src.settings.deltaEThreshold);
+    // id 會變，但應指向同名的樹酯
+    const baseName = (db, id) => db.resins.find((r) => r.id === id)?.name;
+    assert.equal(baseName(back, back.settings.baseResinId), baseName(src, src.settings.baseResinId));
+    assert.equal(baseName(back, back.settings.carrierId), baseName(src, src.settings.carrierId));
+});
+
+test('匯出的工作表涵蓋所有資料段', () => {
+    const src = demoDb();
+    const { buffer } = exportExcel(src, compile(src, src.settings));
+    const wb = XLSX.read(buffer, { type: 'array' });
+    for (const name of ['Settings', 'Resins', 'Colorants', 'Curves', 'Formulations', 'Components']) {
+        assert.ok(wb.SheetNames.includes(name), `缺少工作表 ${name}`);
+    }
+});

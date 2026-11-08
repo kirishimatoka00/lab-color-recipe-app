@@ -44,11 +44,11 @@ export default function HistoryView({ db, compiled, settings, onChange }) {
                             {db.formulations.map((f) => (
                                     <button key={f.id} onClick={() => setEditing(f.id)}
                                         className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left ${
-                                            editing === f.id ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+                                            editing === f.id ? 'accent-edge accent-soft' : 'border-base hover-row'}`}>
                                         <Swatch lab={f.measuredLab} size={20} />
                                         <div className="min-w-0 flex-1">
-                                            <div className="truncate text-xs font-medium text-slate-700">{f.name}</div>
-                                            <div className="text-[10px] text-slate-400">
+                                            <div className="truncate text-xs font-medium text-sub">{f.name}</div>
+                                            <div className="text-[10px] text-faint">
                                                 {f.date} · {f.components.length} 成分 · {f.status}
                                                 {!f.measuredLab && ' · 未填實測色'}
                                             </div>
@@ -86,47 +86,47 @@ function CalibrationReport({ compiled, db }) {
     return (
         <Card title="校正狀態">
             {sampleCount === 0 ? (
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-muted">
                     目前沒有符合條件的歷史配方。校正只會用「同基礎樹酯 + 同載體 + 同量測條件」的配方，
                     請確認上方設定與配方內容一致。
                 </p>
             ) : (
                 <>
                     <dl className="grid grid-cols-2 gap-y-1 text-[11px]">
-                        <dt className="text-slate-400">訓練配方數</dt>
-                        <dd className="text-right font-mono text-slate-700">{sampleCount}</dd>
-                        <dt className="text-slate-400">校正前 RMS ΔE₀₀</dt>
-                        <dd className="text-right font-mono text-slate-700">{calib.baseline?.rmsDE00?.toFixed(2) ?? '—'}</dd>
-                        <dt className="text-slate-400">校正後 RMS ΔE₀₀</dt>
-                        <dd className="text-right font-mono font-semibold text-slate-900">{calib.evaluation.rmsDE00.toFixed(2)}</dd>
-                        <dt className="text-slate-400">最大 ΔE₀₀</dt>
-                        <dd className="text-right font-mono text-slate-700">{calib.evaluation.maxDE00.toFixed(2)}</dd>
+                        <dt className="text-faint">訓練配方數</dt>
+                        <dd className="text-right font-mono text-sub">{sampleCount}</dd>
+                        <dt className="text-faint">校正前 RMS ΔE₀₀</dt>
+                        <dd className="text-right font-mono text-sub">{calib.baseline?.rmsDE00?.toFixed(2) ?? '—'}</dd>
+                        <dt className="text-faint">校正後 RMS ΔE₀₀</dt>
+                        <dd className="text-right font-mono font-semibold text-main">{calib.evaluation.rmsDE00.toFixed(2)}</dd>
+                        <dt className="text-faint">最大 ΔE₀₀</dt>
+                        <dd className="text-right font-mono text-sub">{calib.evaluation.maxDE00.toFixed(2)}</dd>
                     </dl>
 
                     {calib.rejected && (
-                        <p className="mt-2 rounded border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-800">
+                        <p className="mt-2 rounded border tone-warn p-2 text-[11px]">
                             校正後誤差沒有改善，已自動略過色力校正。通常代表歷史配方的量測條件不一致。
                         </p>
                     )}
 
                     {used.length > 0 && (
                         <div className="mt-2">
-                            <div className="mb-1 text-[11px] font-medium text-slate-600">色力係數</div>
+                            <div className="mb-1 text-[11px] font-medium text-sub">色力係數</div>
                             <div className="space-y-0.5">
                                 {used.map((id) => {
                                     const s = calib.strengths[id];
                                     const dev = (s - 1) * 100;
                                     return (
                                         <div key={id} className="flex items-center justify-between text-[11px]">
-                                            <span className="truncate text-slate-600">{compiled.colorantsById[id]?.name || id}</span>
-                                            <span className={`font-mono ${Math.abs(dev) > 10 ? 'text-amber-600' : 'text-slate-500'}`}>
+                                            <span className="truncate text-sub">{compiled.colorantsById[id]?.name || id}</span>
+                                            <span className={`font-mono ${Math.abs(dev) > 10 ? 'text-warn' : 'text-muted'}`}>
                                                 {s.toFixed(3)}（{dev >= 0 ? '+' : ''}{dev.toFixed(1)}%）
                                             </span>
                                         </div>
                                     );
                                 })}
                             </div>
-                            <p className="mt-1 text-[10px] text-slate-400">
+                            <p className="mt-1 text-[10px] text-faint">
                                 偏離 1.0 代表實際色力與建檔曲線有差異，可能是批次差或分散不同。
                             </p>
                         </div>
@@ -212,7 +212,7 @@ function FormulationEditor({ formulation, db, compiled, onSave, onDelete }) {
                 {f.components.length === 0 ? <Empty>尚未加入成分</Empty> : (
                     <table className="w-full text-xs">
                         <thead>
-                            <tr className="border-b border-slate-200 text-left text-[10px] uppercase text-slate-400">
+                            <tr className="border-b border-base text-left text-[10px] uppercase text-faint">
                                 <th className="py-1">色料</th>
                                 <th className="py-1 text-right">
                                     {f.mode === RECIPE_MODE.MASTERBATCH ? '佔母粒 wt%' : '佔製品 wt%'}
@@ -227,7 +227,7 @@ function FormulationEditor({ formulation, db, compiled, onSave, onDelete }) {
                                     <td className="py-1.5">
                                         <div className="flex items-center gap-1.5">
                                             <Swatch lab={compiled.colorantsById[comp.colorantId]?.curve?.[0]?.lab} size={16} />
-                                            <span className="text-slate-700">
+                                            <span className="text-sub">
                                                 {compiled.colorantsById[comp.colorantId]?.name || '(已刪除的色料)'}
                                             </span>
                                         </div>
@@ -239,7 +239,7 @@ function FormulationEditor({ formulation, db, compiled, onSave, onDelete }) {
                                             })}
                                             className="w-24 py-0.5 text-right font-mono text-[11px]" />
                                     </td>
-                                    <td className="py-1.5 text-right font-mono text-slate-500">
+                                    <td className="py-1.5 text-right font-mono text-muted">
                                         {fmt(eff[i]?.c)} %
                                     </td>
                                     <td className="py-1.5 text-right">
@@ -255,7 +255,7 @@ function FormulationEditor({ formulation, db, compiled, onSave, onDelete }) {
                 )}
 
                 {violations.length > 0 && (
-                    <ul className="mt-2 space-y-1 rounded-md border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-800">
+                    <ul className="mt-2 space-y-1 rounded-md border tone-warn p-2 text-[11px]">
                         {violations.map((v, i) => (
                             <li key={i}>
                                 · {v.name}：有效濃度 {fmt(v.value)}%
@@ -269,21 +269,21 @@ function FormulationEditor({ formulation, db, compiled, onSave, onDelete }) {
             <Card title="實測與預測比對" right={dE != null && <DeltaEBadge value={dE} />}>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <div className="mb-1 text-[11px] font-medium text-slate-600">實測色</div>
+                        <div className="mb-1 text-[11px] font-medium text-sub">實測色</div>
                         {f.measuredLab
                             ? <LabInput lab={f.measuredLab} onChange={(v) => set({ measuredLab: v })} />
                             : <Button onClick={() => set({ measuredLab: { l: 50, a: 0, b: 0 } })}>填入實測色</Button>}
                     </div>
                     <div>
-                        <div className="mb-1 text-[11px] font-medium text-slate-600">模型預測</div>
+                        <div className="mb-1 text-[11px] font-medium text-sub">模型預測</div>
                         <div className="flex items-center gap-2">
                             <Swatch lab={prediction.lab} size={28} />
-                            <span className="font-mono text-[11px] text-slate-600">
+                            <span className="font-mono text-[11px] text-sub">
                                 L {prediction.lab.l.toFixed(1)} · a {prediction.lab.a.toFixed(1)} · b {prediction.lab.b.toFixed(1)}
                             </span>
                         </div>
                         {prediction.residual?.weight > 0.01 && (
-                            <div className="mt-1 text-[10px] text-slate-400">
+                            <div className="mt-1 text-[10px] text-faint">
                                 已套用殘差修正（權重 {prediction.residual.weight.toFixed(2)}）
                             </div>
                         )}
@@ -291,7 +291,7 @@ function FormulationEditor({ formulation, db, compiled, onSave, onDelete }) {
                 </div>
 
                 {f.measuredLab && (
-                    <p className="mt-3 text-[11px] text-slate-500">
+                    <p className="mt-3 text-[11px] text-muted">
                         這張配方本身也是校正訓練集的一員，所以這裡的誤差會偏樂觀。
                         要看真實準度，請參考左側「校正狀態」的整體 RMS。
                     </p>

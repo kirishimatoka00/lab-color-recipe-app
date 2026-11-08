@@ -21,11 +21,11 @@ export default function LibraryView({ db, compiled, onChange }) {
     return (
         <div className="grid h-full grid-cols-1 gap-3 overflow-auto p-3 lg:grid-cols-[360px_minmax(0,1fr)]">
             <div className="space-y-3">
-                <div className="flex gap-1 rounded-lg bg-slate-100 p-1">
+                <div className="flex gap-1 rounded-lg surface-3 p-1">
                     {[['colorants', `色料 ${db.colorants.length}`], ['resins', `樹酯 ${db.resins.length}`]].map(([id, label]) => (
                         <button key={id} onClick={() => { setTab(id); setEditing(null); }}
                             className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium ${
-                                tab === id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>
+                                tab === id ? 'surface text-main shadow-sm' : 'text-muted'}`}>
                             {label}
                         </button>
                     ))}
@@ -46,19 +46,19 @@ export default function LibraryView({ db, compiled, onChange }) {
                                     return (
                                         <button key={c.id} onClick={() => setEditing(c.id)}
                                             className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left ${
-                                                editing === c.id ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+                                                editing === c.id ? 'accent-edge accent-soft' : 'border-base hover-row'}`}>
                                             <Swatch lab={c.curve?.[c.curve.length - 1]?.lab} size={20} />
                                             <div className="min-w-0 flex-1">
-                                                <div className="truncate text-xs font-medium text-slate-700">{c.name || '(未命名)'}</div>
-                                                <div className="text-[10px] text-slate-400">
+                                                <div className="truncate text-xs font-medium text-sub">{c.name || '(未命名)'}</div>
+                                                <div className="text-[10px] text-faint">
                                                     含量 {fmt(c.pigmentLoading, 1)}% · {c.curve.length} 點
                                                     {c.role === COLORANT_ROLE.WHITE && ' · 白'}
                                                 </div>
                                             </div>
                                             {m ? (
-                                                <span className="shrink-0 text-[10px] text-emerald-600">已建模</span>
+                                                <span className="shrink-0 text-[10px] text-good">已建模</span>
                                             ) : (
-                                                <span className="shrink-0 text-[10px] text-slate-300">資料不足</span>
+                                                <span className="shrink-0 text-[10px] text-ghost">資料不足</span>
                                             )}
                                         </button>
                                     );
@@ -79,11 +79,11 @@ export default function LibraryView({ db, compiled, onChange }) {
                                 {db.resins.map((r) => (
                                     <button key={r.id} onClick={() => setEditing(r.id)}
                                         className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left ${
-                                            editing === r.id ? 'border-blue-400 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}>
+                                            editing === r.id ? 'accent-edge accent-soft' : 'border-base hover-row'}`}>
                                         <Swatch lab={r.blankLab} size={20} />
                                         <div className="min-w-0 flex-1">
-                                            <div className="truncate text-xs font-medium text-slate-700">{r.name || '(未命名)'}</div>
-                                            <div className="text-[10px] text-slate-400">
+                                            <div className="truncate text-xs font-medium text-sub">{r.name || '(未命名)'}</div>
+                                            <div className="text-[10px] text-faint">
                                                 {r.grade || '—'} · {r.blankLab ? '已量測本色' : '未量測本色'}
                                             </div>
                                         </div>
@@ -136,16 +136,16 @@ function ResinEditor({ resin, onSave, onDelete }) {
                 <Field label="MFI"><NumberInput value={resin.mfi ?? ''} onChange={(v) => set({ mfi: v })} /></Field>
             </div>
 
-            <div className="mt-3 rounded-md border border-slate-200 p-2">
+            <div className="mt-3 rounded-md border border-base p-2">
                 <div className="mb-2 flex items-center justify-between">
-                    <span className="text-[11px] font-medium text-slate-600">未著色本色 Lab</span>
+                    <span className="text-[11px] font-medium text-sub">未著色本色 Lab</span>
                     {resin.blankLab
                         ? <Button variant="ghost" onClick={() => set({ blankLab: null })}>清除</Button>
                         : <Button onClick={() => set({ blankLab: { l: 92, a: -0.6, b: 2.4 } })}>填入</Button>}
                 </div>
                 {resin.blankLab
                     ? <LabInput lab={resin.blankLab} onChange={(v) => set({ blankLab: v })} />
-                    : <p className="text-[11px] text-slate-400">
+                    : <p className="text-[11px] text-faint">
                         沒有本色量測值時會套用預設值，預測會帶系統性偏差。量一片未著色的板最有效。
                     </p>}
             </div>
@@ -226,7 +226,7 @@ function ColorantEditor({ colorant, db, compiled, onSave, onDelete }) {
                 right={
                     <div className="flex items-center gap-2">
                         {model && (
-                            <span className="text-[11px] text-slate-500">
+                            <span className="text-[11px] text-muted">
                                 擬合：{{ linear: '線性', power: '冪次', pchip: 'PCHIP' }[model.form] || model.form}
                                 {model.r2 && ` · R² ${Math.min(...model.r2).toFixed(3)}`}
                             </span>
@@ -240,7 +240,7 @@ function ColorantEditor({ colorant, db, compiled, onSave, onDelete }) {
                     </div>
                 }
             >
-                <p className="mb-2 text-[11px] text-slate-500">
+                <p className="mb-2 text-[11px] text-muted">
                     至少 3 點才能建模，最多 12 點。
                     {colorant.role !== COLORANT_ROLE.WHITE && ' 若樣品含白，請一併填白色母的添加量，否則跨白階預測會失準。'}
                 </p>
@@ -248,7 +248,7 @@ function ColorantEditor({ colorant, db, compiled, onSave, onDelete }) {
                 {colorant.curve.length === 0 ? <Empty>尚未輸入資料點</Empty> : (
                     <table className="w-full text-xs">
                         <thead>
-                            <tr className="border-b border-slate-200 text-left text-[10px] uppercase text-slate-400">
+                            <tr className="border-b border-base text-left text-[10px] uppercase text-faint">
                                 <th className="py-1">色母添加 wt%</th>
                                 <th className="py-1 text-right">顏料濃度</th>
                                 {colorant.role !== COLORANT_ROLE.WHITE && <th className="py-1">白色母</th>}
@@ -264,7 +264,7 @@ function ColorantEditor({ colorant, db, compiled, onSave, onDelete }) {
                                         <NumberInput value={p.dosage} onChange={(v) => setPoint(p.id, { dosage: v })}
                                             className="w-24 py-0.5 text-right font-mono text-[11px]" />
                                     </td>
-                                    <td className="py-1.5 pr-2 text-right font-mono text-[11px] text-slate-500">
+                                    <td className="py-1.5 pr-2 text-right font-mono text-[11px] text-muted">
                                         {fmt(dosageToC(p.dosage, colorant))}%
                                     </td>
                                     {colorant.role !== COLORANT_ROLE.WHITE && (
@@ -307,7 +307,7 @@ function ColorantEditor({ colorant, db, compiled, onSave, onDelete }) {
                 )}
 
                 {colorant.curve.length > 0 && colorant.curve.length < 3 && (
-                    <p className="mt-2 text-[11px] text-amber-600">還差 {3 - colorant.curve.length} 點才能建模。</p>
+                    <p className="mt-2 text-[11px] text-warn">還差 {3 - colorant.curve.length} 點才能建模。</p>
                 )}
             </Card>
         </div>
@@ -316,13 +316,13 @@ function ColorantEditor({ colorant, db, compiled, onSave, onDelete }) {
 
 function AdditiveEditor({ additives, onChange }) {
     return (
-        <div className="mt-3 rounded-md border border-slate-200 p-2">
+        <div className="mt-3 rounded-md border border-base p-2">
             <div className="mb-2 flex items-center justify-between">
-                <span className="text-[11px] font-medium text-slate-600">添加劑（光學上視為透明，只計入重量）</span>
+                <span className="text-[11px] font-medium text-sub">添加劑（光學上視為透明，只計入重量）</span>
                 <Button onClick={() => onChange([...additives, { type: ADDITIVE_TYPE.WAX, name: '', pct: 0 }])}>新增</Button>
             </div>
             {additives.length === 0 ? (
-                <p className="text-[11px] text-slate-400">無</p>
+                <p className="text-[11px] text-faint">無</p>
             ) : additives.map((a, i) => (
                 <div key={i} className="mb-1 flex items-center gap-2">
                     <Select value={a.type} className="w-24 py-1 text-[11px]"
@@ -335,7 +335,7 @@ function AdditiveEditor({ additives, onChange }) {
                         onChange={(e) => onChange(additives.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />
                     <NumberInput value={a.pct} className="w-20 py-1 text-right text-[11px]"
                         onChange={(v) => onChange(additives.map((x, j) => (j === i ? { ...x, pct: v } : x)))} />
-                    <span className="text-[11px] text-slate-400">%</span>
+                    <span className="text-[11px] text-faint">%</span>
                     <Button variant="ghost" onClick={() => onChange(additives.filter((_, j) => j !== i))}>×</Button>
                 </div>
             ))}

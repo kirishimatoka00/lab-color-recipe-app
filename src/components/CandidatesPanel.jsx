@@ -40,7 +40,7 @@ export default function CandidatesPanel({ target, solverCols, compiled, maxTotal
             title="候選配方比較"
             right={
                 <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-slate-500">最多成分</span>
+                    <span className="text-[11px] text-muted">最多成分</span>
                     <Select value={maxComponents} className="w-16 py-1 text-[11px]"
                         onChange={(e) => setMaxComponents(Number(e.target.value))}>
                         {[2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
@@ -52,19 +52,19 @@ export default function CandidatesPanel({ target, solverCols, compiled, maxTotal
             }
         >
             <div className="mb-2 flex flex-wrap items-center gap-1">
-                <span className="text-[11px] text-slate-500">必須包含：</span>
+                <span className="text-[11px] text-muted">必須包含：</span>
                 {solverCols.map((c) => {
                     const on = required.includes(c.id);
                     return (
                         <button key={c.id}
                             onClick={() => setRequired((r) => (on ? r.filter((x) => x !== c.id) : [...r, c.id]))}
                             className={`rounded-full border px-2 py-0.5 text-[11px] ${
-                                on ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-500'}`}>
+                                on ? 'accent-edge accent-soft text-accent' : 'border-base text-muted'}`}>
                             {c.name}
                         </button>
                     );
                 })}
-                {required.length === 0 && <span className="text-[11px] text-slate-400">（無）</span>}
+                {required.length === 0 && <span className="text-[11px] text-faint">（無）</span>}
             </div>
 
             {!list ? (
@@ -75,7 +75,7 @@ export default function CandidatesPanel({ target, solverCols, compiled, maxTotal
                 <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                         <thead>
-                            <tr className="border-b border-slate-200 text-left text-[10px] uppercase tracking-wide text-slate-400">
+                            <tr className="border-b border-base text-left text-[10px] uppercase tracking-wide text-faint">
                                 <th className="py-1">配方</th>
                                 <th className="py-1 text-center">成分數</th>
                                 <th className="py-1 text-right">顏料總量</th>
@@ -87,7 +87,7 @@ export default function CandidatesPanel({ target, solverCols, compiled, maxTotal
                         <tbody>
                             {list.map((cand, i) => (
                                 <tr key={cand.ids.join('|')}
-                                    className={`border-b border-slate-100 last:border-0 ${i === 0 ? 'bg-blue-50/40' : ''}`}>
+                                    className={`border-b border-slate-100 last:border-0 ${i === 0 ? 'accent-soft' : ''}`}>
                                     <td className="py-2">
                                         <div className="mb-1 flex items-center gap-1.5">
                                             <Swatch lab={cand.lab} size={18} />
@@ -99,10 +99,10 @@ export default function CandidatesPanel({ target, solverCols, compiled, maxTotal
                                                 const col = solverCols[idx];
                                                 return (
                                                     <div key={id} className="flex justify-between gap-3 text-[11px]">
-                                                        <span className="text-slate-600">{col.name}</span>
-                                                        <span className="font-mono text-slate-500">
+                                                        <span className="text-sub">{col.name}</span>
+                                                        <span className="font-mono text-muted">
                                                             {fmt(cand.c[idx])}%
-                                                            <span className="ml-1 text-slate-400">
+                                                            <span className="ml-1 text-faint">
                                                                 （色母 {fmt(cToDosage(cand.c[idx], col.colorant))}%）
                                                             </span>
                                                         </span>
@@ -111,13 +111,13 @@ export default function CandidatesPanel({ target, solverCols, compiled, maxTotal
                                             })}
                                         </div>
                                     </td>
-                                    <td className="py-2 text-center font-mono text-slate-600">{cand.usedCount}</td>
-                                    <td className="py-2 text-right font-mono text-slate-600">{fmt(cand.totalC)}%</td>
+                                    <td className="py-2 text-center font-mono text-sub">{cand.usedCount}</td>
+                                    <td className="py-2 text-right font-mono text-sub">{fmt(cand.totalC)}%</td>
                                     <td className="py-2 text-right"><DeltaEBadge value={cand.dE00} threshold={threshold} /></td>
                                     <td className="py-2 text-center">
                                         {cand.feasible
-                                            ? <span className="text-emerald-600">✓</span>
-                                            : <span className="text-red-500" title={cand.violations.map((v) => v.name).join(', ')}>違規</span>}
+                                            ? <span className="text-good">✓</span>
+                                            : <span className="text-bad" title={cand.violations.map((v) => v.name).join(', ')}>違規</span>}
                                     </td>
                                     <td className="py-2 text-right">
                                         <Button onClick={() => onApply(cand.c)}>套用</Button>
@@ -126,7 +126,7 @@ export default function CandidatesPanel({ target, solverCols, compiled, maxTotal
                             ))}
                         </tbody>
                     </table>
-                    <p className="mt-2 text-[11px] text-slate-500">
+                    <p className="mt-2 text-[11px] text-muted">
                         成分少一支，配料與庫存就少一份麻煩。色差差距在 0.5 以內時，通常值得選成分少的那組。
                     </p>
                 </div>
