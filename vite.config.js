@@ -11,6 +11,9 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     chunkSizeWarningLimit: 5000,
+    // favicon 必須內嵌成 data URI。否則 Vite 會把它改名成帶雜湊的檔案，
+    // 而單檔版的 index.html 旁邊沒有那個檔案，圖示就會失效。
+    assetsInlineLimit: 1024 * 1024,
     rollupOptions: { input: 'app.html' },
   },
 });

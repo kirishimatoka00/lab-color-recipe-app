@@ -46,11 +46,26 @@ test('建置測試套件', async () => {
     const entry = join(process.cwd(), 'tests', '.entry.jsx');
     writeFileSync(entry, ENTRY);
     const outfile = join(process.cwd(), 'tests', '.bundle.mjs');
+
+    // 3D 視圖只在使用者切到 3D 分頁時才掛載，SSR 永遠碰不到它。
+    // three/r3f 是 CJS，打進 node bundle 會因動態 require 失敗，所以換成 stub。
+    const stub3D = {
+        name: 'stub-3d',
+        setup(b) {
+            b.onResolve({ filter: /Lab3D\.jsx$/ }, () => ({ path: 'stub-lab3d', namespace: 'stub' }));
+            b.onLoad({ filter: /.*/, namespace: 'stub' }, () => ({
+                contents: 'export default function Lab3D() { return null; }',
+                loader: 'js',
+            }));
+        },
+    };
+
     await build({
         entryPoints: [entry], outfile, bundle: true, format: 'esm',
         platform: 'node', jsx: 'automatic', logLevel: 'silent',
         external: ['react', 'react-dom', 'react-dom/server', 'react/jsx-runtime'],
         loader: { '.css': 'empty' },
+        plugins: [stub3D],
     });
     mod = await import(`file://${outfile}`);
     assert.ok(mod.renderAll);

@@ -5,6 +5,7 @@ import '@fontsource/roboto/500.css';
 import './index.css';
 
 import { loadDb, saveDb, exportJson, importJson, download, emptyDb } from './data/store.js';
+import { exportExcel, importExcel, templateExcel } from './data/excelIO.js';
 import { compile } from './color/engine.js';
 import RecipeView from './views/RecipeView.jsx';
 import LibraryView from './views/LibraryView.jsx';
@@ -22,6 +23,7 @@ function App() {
     const [db, setDb] = React.useState(() => loadDb());
     const [tab, setTab] = React.useState('recipe');
     const fileRef = React.useRef(null);
+    const xlsxRef = React.useRef(null);
 
     // 存檔節流：輸入過程不要每個按鍵都寫 localStorage
     React.useEffect(() => {
@@ -52,6 +54,33 @@ function App() {
         reader.readAsText(file);
         e.target.value = '';
     };
+
+    const handleExcelImport = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const { db: next, report } = importExcel(reader.result, db);
+                const lines = [
+                    ...Object.entries(report.added).map(([k, v]) => `新增 ${k} ${v} 筆`),
+                    ...Object.entries(report.updated).map(([k, v]) => `更新 ${k} ${v} 筆`),
+                ];
+                const skipped = report.skipped.length
+                    ? `\n\n略過 ${report.skipped.length} 列：\n${report.skipped.slice(0, 8).join('\n')}`
+                    : '';
+                setDb(next);
+                window.alert(`${lines.join('\n') || '沒有讀到可用資料'}${skipped}`);
+            } catch (err) {
+                window.alert(`Excel 匯入失敗：${err.message}`);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+        e.target.value = '';
+    };
+
+    const saveXlsx = ({ filename, buffer }) =>
+        download(filename, buffer, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
     const baseResins = db.resins.filter((r) => r.usage !== 'carrier');
     const carriers = db.resins.filter((r) => r.usage !== 'base');
@@ -90,6 +119,10 @@ function App() {
                     {db.colorants.length === 0 && (
                         <Button onClick={() => setDb(demoDb())}>載入範例資料</Button>
                     )}
+                    <Button onClick={() => saveXlsx(exportExcel(db, compiled))}>匯出 Excel</Button>
+                    <Button onClick={() => xlsxRef.current?.click()}>匯入 Excel</Button>
+                    <Button variant="ghost" onClick={() => saveXlsx(templateExcel())}>空白範本</Button>
+                    <span className="mx-1 h-4 w-px bg-slate-200" />
                     <Button onClick={() => {
                         const { filename, content } = exportJson(db);
                         download(filename, content);
@@ -99,6 +132,7 @@ function App() {
                         if (window.confirm('清除所有資料？這個動作無法復原。')) setDb(emptyDb());
                     }}>清空</Button>
                     <input ref={fileRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
+                    <input ref={xlsxRef} type="file" accept=".xlsx,.xls" onChange={handleExcelImport} className="hidden" />
                 </div>
             </header>
 

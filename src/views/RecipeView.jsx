@@ -4,6 +4,9 @@ import {
     ConfidenceBadge, DeltaEBadge, Empty, Warnings, Tabs, fmt,
 } from '../components/ui.jsx';
 import LabPlot from '../components/LabPlot.jsx';
+import Lab3D from '../components/Lab3D.jsx';
+import CandidatesPanel from '../components/CandidatesPanel.jsx';
+import CorrectionPanel from '../components/CorrectionPanel.jsx';
 import { solveRecipe, dosageScan, substitute, reachableGamut } from '../color/solver.js';
 import { buildSolverColorants } from '../color/engine.js';
 import { predictCalibrated } from '../color/calibration.js';
@@ -340,6 +343,19 @@ export default function RecipeView({ db, compiled, settings, onSettings }) {
                             </Card>
                         )}
 
+                        <CandidatesPanel
+                            target={target} solverCols={solverCols} compiled={compiled}
+                            maxTotalC={maxTotalC === '' ? null : Number(maxTotalC)}
+                            threshold={settings.deltaEThreshold ?? 1}
+                            onApply={(c) => setManual(c.slice())}
+                        />
+
+                        <CorrectionPanel
+                            solverCols={solverCols} current={current} compiled={compiled}
+                            target={target} threshold={settings.deltaEThreshold ?? 1}
+                            onApply={(c) => setManual(c.slice())}
+                        />
+
                         <SubstitutionPanel
                             solverCols={solverCols} current={current} compiled={compiled}
                             usable={usable} target={target}
@@ -353,16 +369,26 @@ export default function RecipeView({ db, compiled, settings, onSettings }) {
                 <Card
                     title="色度圖"
                     right={<Tabs value={plotTab} onChange={setPlotTab}
-                        tabs={[{ id: 'ab', label: 'a*–b*' }, { id: 'lc', label: 'C*–L*' }]} />}
+                        tabs={[{ id: 'ab', label: 'a*–b*' }, { id: 'lc', label: 'C*–L*' }, { id: '3d', label: '3D' }]} />}
                 >
-                    <LabPlot
-                        mode={plotTab}
-                        gamutPoints={gamut}
-                        target={target}
-                        predicted={live?.lab}
-                        corrections={corrections && !corrections.isInside ? corrections : null}
-                        size={360}
-                    />
+                    {plotTab === '3d' ? (
+                        <Lab3D
+                            gamutPoints={gamut}
+                            target={target}
+                            predicted={live?.lab}
+                            corrections={corrections && !corrections.isInside ? corrections : null}
+                            height={360}
+                        />
+                    ) : (
+                        <LabPlot
+                            mode={plotTab}
+                            gamutPoints={gamut}
+                            target={target}
+                            predicted={live?.lab}
+                            corrections={corrections && !corrections.isInside ? corrections : null}
+                            size={360}
+                        />
+                    )}
                     {gamut.length > 0 && (
                         <div className="mt-2 text-[11px] text-slate-500">
                             {corrections?.isInside
