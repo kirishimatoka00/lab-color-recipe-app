@@ -1,0 +1,32 @@
+{
+  "name": "lab-color-recipe-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Color Recipe Predictor - 配色配方預測模型（網頁版）",
+  "scripts": {
+    "dev": "vite --open /app.html",
+    "build": "vite build && node scripts/publish-web.mjs",
+    "preview": "vite preview --open /index.html",
+    "test": "node --test \"tests/*.test.mjs\""
+  },
+  "dependencies": {
+    "@e965/xlsx": "^0.20.3",
+    "@fontsource/roboto": "^5.3.0",
+    "@react-three/drei": "9.99.0",
+    "@react-three/fiber": "8.15.16",
+    "lucide-react": "0.309.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "0.160.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "vite": "^8.3.5",
+    "vite-plugin-singlefile": "^2.3.0"
+  },
+  "engines": { "node": ">=22" }
+}
